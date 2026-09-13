@@ -19,7 +19,9 @@ jobs:
       - name: Setup Node/PNPM
         uses: actions/setup-node@v4
         with:
+          node-version: '20'
           node-cache: 'pnpm'
+          pnpm-version: '9'
 
       - name: Build Official Un-forked Production React App
         run: |
