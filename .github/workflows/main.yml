@@ -29,6 +29,8 @@ jobs:
         run: |
           pnpm install
           pnpm run build  # This outputs the compiled site to the 'build/' folder
+        env:
+          VITE_BASE: '/assemblyline-ui-frontend/'
 
       - name: Upload Static Assets to GitHub Pages
         uses: actions/upload-pages-artifact@v3
