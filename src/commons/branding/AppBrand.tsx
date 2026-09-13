@@ -1,6 +1,10 @@
 import { Stack, useTheme } from '@mui/material';
 import { useMemo } from 'react';
 
+declare global {
+  const __BASE_PATH__: string;
+}
+
 export const SIZES = {
   app: {
     divider: {
@@ -114,8 +118,8 @@ export const AppBrand = ({ application, variant, size = 'small' }: AppBrandProps
 
   const { logoSrc, nameSrc } = useMemo(() => {
     return {
-      logoSrc: `/branding/${application}/noswoosh-${theme}.svg`,
-      nameSrc: `/branding/${application}/name-${theme}.svg`
+      logoSrc: `${__BASE_PATH__}branding/${application}/noswoosh-${theme}.svg`,
+      nameSrc: `${__BASE_PATH__}branding/${application}/name-${theme}.svg`
     };
   }, [theme, application]);
 
