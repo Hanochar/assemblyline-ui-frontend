@@ -1,0 +1,41 @@
+name: Deploy Assemblyline Demo to Pages
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Official Frontend Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node/PNPM
+        uses: actions/setup-node@v4
+        with:
+          node-cache: 'pnpm'
+
+      - name: Build Official Un-forked Production React App
+        run: |
+          pnpm install
+          pnpm run build  # This outputs the compiled site to the 'dist/' folder
+
+      - name: Inject Mock Architecture Natively
+        run: |
+          # 1. Copy your mock scripts and data files into the production build folder
+          cp mock-worker.js dist/
+          cp -r demo-mocks dist/
+          
+          # 2. Inject a tiny script tag into the HTML index file to activate the worker
+          SED_SCRIPT="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/mock-worker.js');}</script>"
+          sed -i "s|</body>|$SED_SCRIPT</body>|g" dist/index.html
+
+      - name: Upload Static Assets to GitHub Pages
+        uses: actions/configure-pages@v4
+        # Uses GitHub's native deployment engine to push the 'dist/' directory to Pages
