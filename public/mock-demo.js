@@ -161,6 +161,7 @@
 
   const demoSubmissions = [
     {
+      id: '2d4d4db3f1f7d4c7d2b0543dc40e1bf7',
       sid: '2d4d4db3f1f7d4c7d2b0543dc40e1bf7',
       submitter: 'admin',
       profile: 'default',
@@ -169,9 +170,16 @@
       classification: 'TLP:CLEAR',
       file_count: 1,
       total_errors: 0,
-      services: ['Extract', 'YARA', 'CAPA']
+      error_count: 0,
+      max_score: 725,
+      services: ['Extract', 'YARA', 'CAPA'],
+      params: {
+        description: 'Suspicious invoice PDF for triage',
+        submitter: 'admin'
+      }
     },
     {
+      id: '9d8d4a751b1d7fa4d4f0d0d885d6f343',
       sid: '9d8d4a751b1d7fa4d4f0d0d885d6f343',
       submitter: 'analyst',
       profile: 'default',
@@ -180,7 +188,13 @@
       classification: 'TLP:GREEN',
       file_count: 2,
       total_errors: 1,
-      services: ['Extract', 'Networking']
+      error_count: 1,
+      max_score: 420,
+      services: ['Extract', 'Networking'],
+      params: {
+        description: 'Email attachment investigation',
+        submitter: 'analyst'
+      }
     }
   ];
 
@@ -239,6 +253,38 @@
     }
   ];
 
+  const demoUsers = [
+    {
+      id: 'admin',
+      uname: 'admin',
+      name: 'Demo Admin',
+      email: 'admin@cyber.gc.ca',
+      is_active: true,
+      type: ['admin']
+    },
+    {
+      id: 'analyst',
+      uname: 'analyst',
+      name: 'Demo Analyst',
+      email: 'analyst@example.com',
+      is_active: true,
+      type: ['user']
+    }
+  ];
+
+  const getDemoSearchData = function (indexName) {
+    return {
+      alert: demoAlerts,
+      file: demoFiles,
+      result: demoResults,
+      service: demoServices,
+      signature: demoSignatures,
+      submission: demoSubmissions,
+      user: demoUsers,
+      workflow: demoWorkflows
+    }[indexName] || [];
+  };
+
   const makeSearchResult = function (items, indexName) {
     return {
       items,
@@ -290,7 +336,10 @@
       allow_url_submissions: true,
       api_proxies: {},
       apps: [],
-      banner: null,
+      banner: {
+        en: 'Demo mode: this is not a live Assemblyline system. File uploads and submission creation are disabled.',
+        fr: 'Mode démo : il ne s’agit pas d’un système Assemblyline en direct. Les téléversements de fichiers et la création de soumissions sont désactivés.'
+      },
       banner_level: 'info',
       enforce_classification: false,
       external_links: {},
@@ -629,7 +678,10 @@
                 allow_url_submissions: true,
                 api_proxies: {},
                 apps: [],
-                banner: null,
+                banner: {
+                  en: 'Demo mode: this is not a live Assemblyline system. File uploads and submission creation are disabled.',
+                  fr: 'Mode démo : il ne s’agit pas d’un système Assemblyline en direct. Les téléversements de fichiers et la création de soumissions sont désactivés.'
+                },
                 banner_level: 'info',
                 enforce_classification: false,
                 external_links: {},
@@ -727,15 +779,7 @@
 
       if (/\/api\/v4\/search\/(alert|submission|file|signature|service|workflow)\//.test(apiPath)) {
         const indexName = apiPath.split('/').filter(Boolean)[3];
-        const indexMap = {
-          alert: demoAlerts,
-          submission: demoSubmissions,
-          file: demoFiles,
-          signature: demoSignatures,
-          service: demoServices,
-          workflow: demoWorkflows
-        };
-        return mockResponse(makeSearchResult(indexMap[indexName] || [], indexName || 'alert'));
+        return mockResponse(makeSearchResult(getDemoSearchData(indexName), indexName || 'alert'));
       }
 
       if (/\/api\/v4\/search\/result\//.test(apiPath)) {
@@ -767,10 +811,14 @@
       if (/\/api\/v4\/alert\/(statuses|priorities|labels)\/$/.test(apiPath)) return mockResponse([]);
       if (apiPath === '/api/v4/signature/sources/') return mockResponse({});
       if (/\/api\/v4\/profile\//.test(apiPath) || /\/api\/v4\/user\//.test(apiPath)) return mockResponse({});
-      if (/\/api\/v4\/submission\//.test(apiPath) && methodName === 'GET') return mockResponse(makeSearchResult(demoSubmissions, 'submission'));
+      if (/\/api\/v4\/submission\//.test(apiPath) && methodName === 'GET') {
+        return mockResponse(makeSearchResult(demoSubmissions, 'submission'));
+      }
 
-      if (apiPath === '/api/v4/search/alert/' || apiPath === '/api/v4/search/file/' || apiPath === '/api/v4/search/submission/' || apiPath === '/api/v4/search/signature/' || apiPath === '/api/v4/search/service/' || apiPath === '/api/v4/search/workflow/' || apiPath === '/api/v4/search/user/') {
-        return mockResponse(makeSearchResult(demoAlerts, 'alert'));
+      const searchMatch = apiPath.match(/^\/api\/v4\/search\/([^/]+)\/$/);
+      if (searchMatch) {
+        const indexName = searchMatch[1];
+        return mockResponse(makeSearchResult(getDemoSearchData(indexName), indexName));
       }
 
       return mockResponse(emptySearchResponse);
