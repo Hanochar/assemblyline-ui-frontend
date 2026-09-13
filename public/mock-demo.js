@@ -441,10 +441,12 @@
       response: { service_name: 'YARA' },
       result: {
         score: 725,
-        sections: {
-          heuristic: { heur_id: 'H0001', heur_name: 'Suspicious PDF' },
-          tags: { file: { rule: { yara: ['Suspicious_PDF_Indicator'] } } }
-        }
+        sections: [
+          {
+            heuristic: { heur_id: 'H0001', name: 'Suspicious PDF', score: 725, attack: [], signature: [] },
+            tags: []
+          }
+        ]
       }
     },
     {
@@ -458,10 +460,12 @@
       response: { service_name: 'Extract' },
       result: {
         score: 420,
-        sections: {
-          heuristic: { heur_id: 'H0002', heur_name: 'Macro-based Office sample' },
-          tags: { file: { rule: { yara: ['Office_Macro_Heuristic'] } } }
-        }
+        sections: [
+          {
+            heuristic: { heur_id: 'H0002', name: 'Macro-based Office sample', score: 420, attack: [], signature: [] },
+            tags: []
+          }
+        ]
       }
     }
   ];
