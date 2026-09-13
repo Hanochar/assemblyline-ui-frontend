@@ -30,16 +30,6 @@ jobs:
           pnpm install
           pnpm run build  # This outputs the compiled site to the 'dist/' folder
 
-      - name: Inject Mock Architecture Natively
-        run: |
-          # 1. Copy your mock scripts and data files into the production build folder (if they exist)
-          [ -f mock-worker.js ] && cp mock-worker.js dist/ || true
-          [ -d demo-mocks ] && cp -r demo-mocks dist/ || true
-          
-          # 2. Inject a tiny script tag into the HTML index file to activate the worker
-          SED_SCRIPT="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/mock-worker.js');}</script>"
-          sed -i "s|</body>|$SED_SCRIPT</body>|g" dist/index.html
-
       - name: Upload Static Assets to GitHub Pages
         uses: actions/configure-pages@v4
         # Uses GitHub's native deployment engine to push the 'dist/' directory to Pages
