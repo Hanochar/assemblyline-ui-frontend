@@ -216,7 +216,7 @@
                 metadata: { archive: {}, submit: {}, strict_schemes: [] }
               },
               system: { version: '4.6.0', name: 'Assemblyline', type: 'production' },
-              ui: { apps: [], tos: false, api_proxies: {}, audit: false, enforce_classification: false }
+              ui: { ai: { enabled: false }, apps: [], tos: false, api_proxies: {}, audit: false, enforce_classification: false }
             }
           },
           api_server_version: '4.6.0',
