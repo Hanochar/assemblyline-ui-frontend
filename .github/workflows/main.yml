@@ -31,5 +31,10 @@ jobs:
           pnpm run build  # This outputs the compiled site to the 'dist/' folder
 
       - name: Upload Static Assets to GitHub Pages
-        uses: actions/configure-pages@v4
-        # Uses GitHub's native deployment engine to push the 'dist/' directory to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist/'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
