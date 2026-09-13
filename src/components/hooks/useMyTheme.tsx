@@ -10,7 +10,7 @@ export const useMyTheme = (): AppTheme[] => {
   });
 
   useEffect(() => {
-    const themeUrl = new URL('theme.json', import.meta.env.BASE_URL).toString();
+    const themeUrl = `${import.meta.env.BASE_URL}theme.json`;
 
     fetch(themeUrl)
       .then(response => response.json())

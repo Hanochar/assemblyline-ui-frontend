@@ -9,7 +9,19 @@
     basePath = '/assemblyline-ui-frontend';
   }
 
-  // 2. Intercept Location.prototype.pathname for React Router (basename="/")
+  // 2. Safeguard URL constructor in case relative base URL is passed (e.g. new URL('theme.json', '/'))
+  const OrigURL = window.URL;
+  function CustomURL(url, base) {
+    if (typeof base === 'string' && (base.startsWith('/') || (!base.includes('://') && !base.startsWith('data:')))) {
+      base = window.location.origin + (base.startsWith('/') ? base : '/' + base);
+    }
+    return new OrigURL(url, base);
+  }
+  CustomURL.prototype = OrigURL.prototype;
+  Object.setPrototypeOf(CustomURL, OrigURL);
+  window.URL = CustomURL;
+
+  // 3. Intercept Location.prototype.pathname for React Router (basename="/")
   if (basePath) {
     const origPathnameDesc = Object.getOwnPropertyDescriptor(Location.prototype, 'pathname');
     if (origPathnameDesc && origPathnameDesc.get) {
