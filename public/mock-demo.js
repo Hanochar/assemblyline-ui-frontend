@@ -25,44 +25,77 @@
   Object.assign(CustomURL, OrigURL);
   window.URL = CustomURL;
 
-  // 3. Intercept Location.prototype.pathname for React Router (basename="/")
-  if (basePath) {
-    const origPathnameDesc = Object.getOwnPropertyDescriptor(Location.prototype, 'pathname');
-    if (origPathnameDesc && origPathnameDesc.get) {
-      Object.defineProperty(Location.prototype, 'pathname', {
-        get() {
-          const raw = origPathnameDesc.get.call(this);
-          if (raw.startsWith(basePath)) {
-            const stripped = raw.slice(basePath.length);
-            return stripped.startsWith('/') ? stripped : '/' + stripped;
-          }
-          return raw;
-        },
-        configurable: true
-      });
-    }
-
-    // Intercept history.pushState and history.replaceState to re-attach basePath
-    const origPushState = history.pushState;
-    const origReplaceState = history.replaceState;
-
-    history.pushState = function (state, title, url) {
-      if (typeof url === 'string' && url.startsWith('/') && !url.startsWith(basePath)) {
-        url = basePath + url;
-      }
-      return origPushState.call(this, state, title, url);
-    };
-
-    history.replaceState = function (state, title, url) {
-      if (typeof url === 'string' && url.startsWith('/') && !url.startsWith(basePath)) {
-        url = basePath + url;
-      }
-      return origReplaceState.call(this, state, title, url);
-    };
-  }
-
-  // 4. Intercept window.fetch for API mocks and asset URL rewrites
+  // 3. Intercept window.fetch for API mocks and asset URL rewrites
   const origFetch = window.fetch;
+  const allRoles = [
+    'administration',
+    'alert_manage',
+    'alert_view',
+    'apikey_access',
+    'archive_comment',
+    'archive_download',
+    'archive_manage',
+    'archive_trigger',
+    'archive_view',
+    'assistant_use',
+    'badlist_manage',
+    'badlist_view',
+    'bundle_download',
+    'external_query',
+    'file_detail',
+    'file_download',
+    'file_purge',
+    'heuristic_view',
+    'obo_access',
+    'replay_system',
+    'replay_trigger',
+    'retrohunt_run',
+    'retrohunt_view',
+    'safelist_manage',
+    'safelist_view',
+    'self_manage',
+    'signature_download',
+    'signature_import',
+    'signature_manage',
+    'signature_view',
+    'submission_create',
+    'submission_customize',
+    'submission_delete',
+    'submission_manage',
+    'submission_view',
+    'workflow_manage',
+    'workflow_view'
+  ];
+  const indexNames = [
+    'alert',
+    'badlist',
+    'error',
+    'file',
+    'heuristic',
+    'result',
+    'retrohunt',
+    'safelist',
+    'service',
+    'signature',
+    'submission',
+    'user',
+    'workflow'
+  ];
+  const emptySearchResponse = { items: [], total: 0, offset: 0, rows: 25 };
+  const mockResponse = function (apiResponse, status) {
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          api_error_message: '',
+          api_response: apiResponse,
+          api_server_version: '4.6.0',
+          api_status_code: status || 200
+        }),
+        { status: status || 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+  };
+
   window.fetch = function (input, init) {
     let url = '';
     if (typeof input === 'string') {
@@ -75,6 +108,8 @@
 
     // A. Intercept API requests
     if (url.includes('/api/v4/') || url.includes('/api/')) {
+      const apiPath = new OrigURL(url, window.location.origin).pathname;
+
       if (url.includes('whoami')) {
         const mockWhoAmI = {
           api_error_message: '',
@@ -98,12 +133,12 @@
             name: 'Demo Admin',
             otp_sk: null,
             password: '',
-            roles: ['administration'],
+            roles: allRoles,
             security_tokens: [],
             submission_async_quota: 0,
             submission_daily_quota: 0,
             submission_quota: 0,
-            type: ['user'],
+            type: ['admin'],
             uname: 'admin',
             username: 'admin',
             c12nDef: {
@@ -150,7 +185,7 @@
               subgroups_map_lts: {},
               subgroups_map_stl: {}
             },
-            indexes: ['alert', 'badlist', 'file', 'heuristic', 'result', 'retrohunt', 'safelist', 'service', 'signature', 'submission', 'user', 'workflow'],
+            indexes: Object.fromEntries(indexNames.map(name => [name, {}])),
             settings: {
               default_external_sources: [],
               default_zip_password: 'infected',
@@ -167,8 +202,8 @@
             configuration: {
               auth: { allow_2fa: true, allow_apikeys: true, allow_extended_apikeys: true, allow_security_tokens: true, apikey_max_dtl: null },
               core: { archiver: { alternate_dtl: 0, minimum_required_services: [], use_metadata: false }, ingester: { default_max_extracted: 0, default_max_supplementary: 0 }, scaler: { service_defaults: { min_instances: 0 } } },
-              datastore: { archive: { enabled: false } },
-              retrohunt: { dtl: 30, enabled: false, max_dtl: 0 },
+              datastore: { archive: { enabled: true } },
+              retrohunt: { dtl: 30, enabled: true, max_dtl: 0 },
               submission: {
                 dtl: 30,
                 file_sources: {
@@ -180,7 +215,7 @@
                 max_file_size: 104857600,
                 metadata: { archive: {}, submit: {}, strict_schemes: [] }
               },
-              system: { version: '4.6.0', name: 'Assemblyline' },
+              system: { version: '4.6.0', name: 'Assemblyline', type: 'production' },
               ui: { apps: [], tos: false, api_proxies: {}, audit: false, enforce_classification: false }
             }
           },
@@ -188,43 +223,23 @@
           api_status_code: 200
         };
 
-        return Promise.resolve(
-          new Response(JSON.stringify(mockWhoAmI), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          })
-        );
+        return Promise.resolve(new Response(JSON.stringify(mockWhoAmI), { status: 200, headers: { 'Content-Type': 'application/json' } }));
       }
 
       if (url.includes('/help/constants/')) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              api_error_message: '',
-              api_response: { max_file_size: 104857600 },
-              api_server_version: '4.6.0',
-              api_status_code: 200
-            }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
-          )
-        );
+        return mockResponse({ max_file_size: 104857600 });
       }
 
-      // Default mock API response for other API requests
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            api_error_message: '',
-            api_response: { items: [], total: 0, offset: 0, rows: 25 },
-            api_server_version: '4.6.0',
-            api_status_code: 200
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          }
-        )
-      );
+      if (/\/api\/v4\/search\/(facet|histogram|fields|stats)\//.test(apiPath)) return mockResponse({});
+      if (/\/api\/v4\/(service\/all|service\/installing)\/$/.test(apiPath)) return mockResponse([]);
+      if (apiPath === '/api/v4/service/updates/') return mockResponse({});
+      if (apiPath === '/api/v4/system/status/ALL/') return mockResponse({ dispatcher: true, ingester: true });
+      if (/\/api\/v4\/alert\/(statuses|priorities|labels)\/$/.test(apiPath)) return mockResponse([]);
+      if (apiPath === '/api/v4/alert/statistics/') return mockResponse({});
+      if (apiPath === '/api/v4/signature/sources/') return mockResponse({});
+      if (apiPath === '/api/v4/help/configuration/') return mockResponse({});
+
+      return mockResponse(emptySearchResponse);
     }
 
     // B. Fix root asset fetches (e.g. /theme.json) when running under a subpath
@@ -235,7 +250,7 @@
     return origFetch.call(this, input, init);
   };
 
-  // 5. Intercept DOM attribute setting for asset resources (images, scripts, links)
+  // 4. Intercept DOM attribute setting for asset resources (images, scripts, links)
   if (basePath) {
     const fixUrl = function (val) {
       if (typeof val === 'string' && val.startsWith('/') && !val.startsWith(basePath) && !val.startsWith('//')) {

@@ -107,7 +107,7 @@ export const MyApp: React.FC = () => {
   // const mySearch: AppSearchService<SearchItem> = useMySearch();
 
   return (
-    <BrowserRouter basename="/">
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <APIProvider>
         <SafeResultsProvider>
           <QuotaProvider>
