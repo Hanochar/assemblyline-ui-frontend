@@ -32,6 +32,11 @@ jobs:
         env:
           VITE_BASE: '/assemblyline-ui-frontend/'
 
+      - name: Inject Mock Script for GitHub Pages Demo
+        run: |
+          sed -i "s|</head>|<script src=\"/assemblyline-ui-frontend/mock-demo.js\"></script></head>|g" build/index.html
+          cp build/index.html build/404.html
+
       - name: Upload Static Assets to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
