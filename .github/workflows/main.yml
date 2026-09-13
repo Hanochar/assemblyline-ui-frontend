@@ -32,9 +32,9 @@ jobs:
 
       - name: Inject Mock Architecture Natively
         run: |
-          # 1. Copy your mock scripts and data files into the production build folder
-          cp mock-worker.js dist/
-          cp -r demo-mocks dist/
+          # 1. Copy your mock scripts and data files into the production build folder (if they exist)
+          [ -f mock-worker.js ] && cp mock-worker.js dist/ || true
+          [ -d demo-mocks ] && cp -r demo-mocks dist/ || true
           
           # 2. Inject a tiny script tag into the HTML index file to activate the worker
           SED_SCRIPT="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/mock-worker.js');}</script>"
