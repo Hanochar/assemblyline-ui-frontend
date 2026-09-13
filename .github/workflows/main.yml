@@ -16,12 +16,16 @@ jobs:
       - name: Checkout Official Frontend Code
         uses: actions/checkout@v4
 
-      - name: Setup Node/PNPM
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          node-cache: 'pnpm'
-          pnpm-version: '9'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9'
 
       - name: Build Official Un-forked Production React App
         run: |
