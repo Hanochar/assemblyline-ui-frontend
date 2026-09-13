@@ -82,7 +82,6 @@
     'workflow'
   ];
   const emptySearchResponse = { items: [], total: 0, offset: 0, rows: 25 };
-  const demoBannerId = 'assemblyline-demo-banner';
   const demoBannerText = 'Demo mode: this is not a live Assemblyline system. File uploads and submission creation are disabled.';
 
   const demoServices = [
@@ -138,10 +137,25 @@
       type: 'network',
       ts: '2026-06-13T10:24:33.000Z',
       score: 725,
-      verdict: 'malicious',
+      verdict: { malicious: ['admin'], non_malicious: [] },
+      status: 'open',
+      priority: 'high',
+      label: ['malware', 'suspicious'],
+      reporting_ts: '2026-06-13T10:24:33.000Z',
       source: 'email',
       owner: 'admin',
       classification: 'TLP:CLEAR',
+      file: { name: 'invoice.pdf', type: 'document/pdf' },
+      al: {
+        score: 725,
+        attrib: [],
+        av: [],
+        ip: [],
+        domain: [],
+        uri: [],
+        detailed: null
+      },
+      hint_owner: null,
       response: { service_name: 'YARA' },
       metadata: { filename: 'invoice.pdf', sha256: 'abc123...' }
     },
@@ -150,10 +164,25 @@
       type: 'file',
       ts: '2026-06-13T09:14:11.000Z',
       score: 420,
-      verdict: 'suspicious',
+      verdict: { malicious: [], non_malicious: [] },
+      status: 'in_progress',
+      priority: 'medium',
+      label: ['suspicious'],
+      reporting_ts: '2026-06-13T09:14:11.000Z',
       source: 'upload',
       owner: 'demo',
       classification: 'TLP:AMBER',
+      file: { name: 'eml_sample.eml', type: 'message/rfc822' },
+      al: {
+        score: 420,
+        attrib: [],
+        av: [],
+        ip: [],
+        domain: [],
+        uri: [],
+        detailed: null
+      },
+      hint_owner: null,
       response: { service_name: 'Extract' },
       metadata: { filename: 'eml_sample.eml', sha256: 'def456...' }
     }
@@ -201,20 +230,32 @@
   const demoFiles = [
     {
       sha256: 'abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      id: 'abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
       name: 'invoice.pdf',
       size: 385240,
       type: 'document/pdf',
       classification: 'TLP:CLEAR',
       score: 725,
+      seen: { first: '2026-06-13T10:30:00.000Z', last: '2026-06-13T10:31:30.000Z', count: 1 },
+      labels: ['suspicious'],
+      label_categories: { info: [], technique: ['suspicious'], attribution: [] },
+      comments: [],
+      from_archive: false,
       state: 'completed'
     },
     {
       sha256: 'def4567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      id: 'def4567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
       name: 'eml_sample.eml',
       size: 125210,
       type: 'message/rfc822',
       classification: 'TLP:AMBER',
       score: 420,
+      seen: { first: '2026-06-13T09:00:00.000Z', last: '2026-06-13T09:14:11.000Z', count: 1 },
+      labels: ['suspicious'],
+      label_categories: { info: [], technique: ['suspicious'], attribution: [] },
+      comments: [],
+      from_archive: false,
       state: 'completed'
     }
   ];
@@ -224,7 +265,9 @@
       id: 'YARA-001',
       name: 'Suspicious_PDF_Indicator',
       type: 'yara',
-      state: 'enabled',
+      status: 'enabled',
+      last_modified: '2026-06-12T08:00:00.000Z',
+      stats: { count: 12, last_hit: '2026-06-13T10:31:00.000Z' },
       classification: 'TLP:CLEAR',
       source: 'community'
     },
@@ -232,7 +275,9 @@
       id: 'YARA-002',
       name: 'Office_Macro_Heuristic',
       type: 'yara',
-      state: 'enabled',
+      status: 'enabled',
+      last_modified: '2026-06-11T14:20:00.000Z',
+      stats: { count: 7, last_hit: '2026-06-13T09:15:00.000Z' },
       classification: 'TLP:CLEAR',
       source: 'custom'
     }
@@ -240,14 +285,26 @@
 
   const demoWorkflows = [
     {
+      workflow_id: 'workflow-priority-triage',
       name: 'Priority triage',
       enabled: true,
+      creation_date: '2026-05-01T08:00:00.000Z',
+      last_seen: '2026-06-13T10:31:30.000Z',
+      priority: 'high',
+      status: 'enabled',
+      hit_count: 24,
       description: 'Auto-assigns high-risk submissions to analysis queue.',
       classification: 'TLP:CLEAR'
     },
     {
+      workflow_id: 'workflow-finance-alerts',
       name: 'Finance alerts',
       enabled: true,
+      creation_date: '2026-05-15T12:30:00.000Z',
+      last_seen: '2026-06-13T09:20:00.000Z',
+      priority: 'medium',
+      status: 'enabled',
+      hit_count: 11,
       description: 'Prioritizes invoice and banking themed malware alerts.',
       classification: 'TLP:AMBER'
     }
@@ -272,6 +329,20 @@
     }
   ];
 
+  const demoRetrohunts = [
+    {
+      id: 'retrohunt-001',
+      key: 'retrohunt-001',
+      description: 'Search for suspicious PDF indicators',
+      creator: 'admin',
+      classification: 'TLP:CLEAR',
+      created_time: '2026-06-13T08:00:00.000Z',
+      total_hits: 3,
+      state: 'completed',
+      finished: '2026-06-13T08:05:00.000Z'
+    }
+  ];
+
   const getDemoSearchData = function (indexName) {
     return {
       alert: demoAlerts,
@@ -280,6 +351,7 @@
       service: demoServices,
       signature: demoSignatures,
       submission: demoSubmissions,
+      retrohunt: demoRetrohunts,
       user: demoUsers,
       workflow: demoWorkflows
     }[indexName] || [];
@@ -361,10 +433,14 @@
     {
       id: 'result-001',
       sha256: 'abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      created: '2026-06-13T10:31:30.000Z',
       score: 725,
+      from_archive: false,
       classification: 'TLP:CLEAR',
       type: 'analysis',
+      response: { service_name: 'YARA' },
       result: {
+        score: 725,
         sections: {
           heuristic: { heur_id: 'H0001', heur_name: 'Suspicious PDF' },
           tags: { file: { rule: { yara: ['Suspicious_PDF_Indicator'] } } }
@@ -374,10 +450,14 @@
     {
       id: 'result-002',
       sha256: 'def4567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      created: '2026-06-13T09:15:00.000Z',
       score: 420,
+      from_archive: false,
       classification: 'TLP:AMBER',
       type: 'analysis',
+      response: { service_name: 'Extract' },
       result: {
+        score: 420,
         sections: {
           heuristic: { heur_id: 'H0002', heur_name: 'Macro-based Office sample' },
           tags: { file: { rule: { yara: ['Office_Macro_Heuristic'] } } }
@@ -389,15 +469,18 @@
   const demoFileDetail = {
     file_info: {
       sha256: 'abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+      id: 'abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
       md5: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4',
       sha1: 'abcd1234efgh5678ijkl9012mnop3456qrst7890',
       size: 385240,
       name: 'invoice.pdf',
       type: 'document/pdf',
       classification: 'TLP:CLEAR',
-      seen: { first: '2026-06-13T10:30:00.000Z', last: '2026-06-13T10:31:30.000Z' },
+      seen: { first: '2026-06-13T10:30:00.000Z', last: '2026-06-13T10:31:30.000Z', count: 1 },
       score: 725,
-      labels: ['pdf', 'suspicious']
+      labels: ['pdf', 'suspicious'],
+      comments: [],
+      from_archive: false
     },
     results: demoResults,
     tags: {
@@ -418,9 +501,25 @@
     state: 'completed',
     profile: 'default',
     classification: 'TLP:CLEAR',
+    max_score: 725,
+    verdict: 'malicious',
+    errors: {},
     times: { submitted: '2026-06-13T10:30:00.000Z', completed: '2026-06-13T10:31:30.000Z' },
     file_count: 1,
     files: [demoFileDetail.file_info],
+    metadata: demoFileDetail.metadata,
+    params: {
+      description: 'Suspicious invoice PDF for triage',
+      submitter: 'admin',
+      classification: 'TLP:CLEAR',
+      groups: ['default'],
+      services: {
+        selected: ['Extract', 'YARA', 'CAPA'],
+        rescan: [],
+        errors: []
+      },
+      service_spec: {}
+    },
     results: demoResults,
     summary: {
       malicious: 1,
@@ -432,27 +531,99 @@
     services: ['Extract', 'YARA', 'CAPA']
   };
 
-  const ensureDemoBanner = function () {
-    if (document.getElementById(demoBannerId)) return;
+  const demoSubmissionSummary = {
+    classification: 'TLP:CLEAR',
+    filtered: false,
+    partial: false,
+    map: {
+      [demoFileDetail.file_info.sha256]: ['Suspicious_PDF_Indicator']
+    },
+    heuristics: {
+      safe: [],
+      info: [],
+      suspicious: [['H0001', 'Suspicious PDF']],
+      malicious: []
+    },
+    heuristic_name_map: {},
+    heuristic_sections: {},
+    attack_matrix: {},
+    tags: {
+      attribution: {},
+      behavior: {},
+      ioc: {}
+    }
+  };
 
-    const banner = document.createElement('div');
-    banner.id = demoBannerId;
-    banner.textContent = demoBannerText;
-    banner.style.position = 'fixed';
-    banner.style.top = '0';
-    banner.style.left = '0';
-    banner.style.right = '0';
-    banner.style.zIndex = '2147483647';
-    banner.style.background = '#8d1f1f';
-    banner.style.color = '#fff';
-    banner.style.fontSize = '12px';
-    banner.style.fontWeight = '700';
-    banner.style.letterSpacing = '0.04em';
-    banner.style.textAlign = 'center';
-    banner.style.padding = '8px 12px';
-    banner.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
-    banner.style.lineHeight = '1.4';
-    document.body.prepend(banner);
+  const demoSubmissionTree = {
+    classification: 'TLP:CLEAR',
+    expiry_ts: '2026-07-13T10:31:30.000Z',
+    filtered: false,
+    partial: false,
+    supplementary: [],
+    tree: {
+      [demoFileDetail.file_info.sha256]: {
+        children: {},
+        name: ['invoice.pdf'],
+        score: 725,
+        sha256: demoFileDetail.file_info.sha256,
+        size: demoFileDetail.file_info.size,
+        type: 'document/pdf'
+      }
+    }
+  };
+
+  const demoSubmissionReport = {
+    sid: demoSubmissionDetail.sid,
+    state: 'completed',
+    classification: 'TLP:CLEAR',
+    error_count: 0,
+    file_count: 1,
+    from_archive: false,
+    max_score: 725,
+    verdict: 'malicious',
+    archived: false,
+    archive_ts: null,
+    expiry_ts: '2026-07-13T10:31:30.000Z',
+    scan_key: 'demo-scan-key',
+    to_be_deleted: false,
+    times: demoSubmissionDetail.times,
+    files: [demoFileDetail.file_info],
+    file_info: demoFileDetail.file_info,
+    params: {
+      description: 'Suspicious invoice PDF for triage',
+      submitter: 'admin',
+      classification: 'TLP:CLEAR',
+      services: {
+        selected: ['Extract', 'YARA', 'CAPA'],
+        rescan: [],
+        errors: []
+      },
+      service_spec: {}
+    },
+    file_tree: {
+      [demoFileDetail.file_info.sha256]: {
+        name: ['invoice.pdf'],
+        sha256: demoFileDetail.file_info.sha256,
+        type: 'document/pdf',
+        size: demoFileDetail.file_info.size,
+        score: 725,
+        children: {}
+      }
+    },
+    important_files: [demoFileDetail.file_info.sha256],
+    attack_matrix: {},
+    heuristics: { safe: {}, info: {}, suspicious: {}, malicious: {} },
+    heuristic_sections: {},
+    heuristic_name_map: {},
+    metadata: demoFileDetail.metadata,
+    promoted_sections: [],
+    report_filtered: false,
+    report_partial: false,
+    tags: {
+      attributions: {},
+      behaviors: {},
+      indicators_of_compromise: {}
+    }
   };
 
   const blockDemoSubmission = function () {
@@ -483,12 +654,6 @@
     );
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureDemoBanner, { once: true });
-  } else {
-    ensureDemoBanner();
-  }
-
   const demoWriteActions = ['/api/v4/file/upload/', '/api/v4/submit/', '/api/v4/submission/'];
   const isWriteAction = function (method, targetUrl) {
     const methodName = (method || 'GET').toUpperCase();
@@ -499,7 +664,6 @@
     const action = (event.target && event.target.action) || '';
     if (action.includes('/api/v4/') || action.includes('/submit') || action.includes('/submission')) {
       event.preventDefault();
-      ensureDemoBanner();
       const toast = document.createElement('div');
       toast.textContent = demoBannerText;
       toast.style.position = 'fixed';
@@ -738,6 +902,33 @@
         });
       }
 
+      if (apiPath === '/api/v4/alert/list/' || /\/api\/v4\/alert\/grouped\/[^/]+\/$/.test(apiPath)) {
+        return mockResponse({
+          items: demoAlerts,
+          total: demoAlerts.length,
+          offset: 0,
+          rows: 25,
+          counted_total: demoAlerts.length,
+          tc_start: ''
+        });
+      }
+
+      if (apiPath === '/api/v4/alert/statuses/') {
+        return mockResponse({ open: 1, in_progress: 1, closed: 0 });
+      }
+
+      if (apiPath === '/api/v4/alert/priorities/') {
+        return mockResponse({ high: 1, medium: 1, low: 0 });
+      }
+
+      if (apiPath === '/api/v4/alert/labels/') {
+        return mockResponse({ suspicious: 1, malware: 1 });
+      }
+
+      if (/\/api\/v4\/user\/favorites\/[^/]+\/$/.test(apiPath)) {
+        return mockResponse({ alert: [] });
+      }
+
       if (/\/api\/v4\/user\/settings\/.+\/$/.test(apiPath)) {
         return mockResponse({
           default_external_sources: [],
@@ -790,7 +981,23 @@
         return mockResponse(demoFileDetail);
       }
 
-      if (/\/api\/v4\/submission\/[A-Za-z0-9]+\/$/.test(apiPath) || /\/api\/v4\/submission\/summary\/.+\/$/.test(apiPath) || /\/api\/v4\/submission\/tree\/.+\/$/.test(apiPath) || /\/api\/v4\/submission\/verdict\/.+\/.+\/$/.test(apiPath)) {
+      if (/\/api\/v4\/submission\/report\/.+\/$/.test(apiPath)) {
+        return mockResponse(demoSubmissionReport);
+      }
+
+        if (/\/api\/v4\/submission\/summary\/.+\/$/.test(apiPath)) {
+          return mockResponse(demoSubmissionSummary);
+        }
+
+        if (/\/api\/v4\/submission\/tree\/.+\/$/.test(apiPath)) {
+          return mockResponse(demoSubmissionTree);
+        }
+
+        if (/\/api\/v4\/submission\/verdict\/.+\/.+\/$/.test(apiPath)) {
+          return mockResponse({ success: true });
+        }
+
+        if (/\/api\/v4\/submission\/[A-Za-z0-9]+\/$/.test(apiPath)) {
         return mockResponse(demoSubmissionDetail);
       }
 
@@ -808,7 +1015,6 @@
       }
 
       if (apiPath === '/api/v4/service/updates/') return mockResponse({});
-      if (/\/api\/v4\/alert\/(statuses|priorities|labels)\/$/.test(apiPath)) return mockResponse([]);
       if (apiPath === '/api/v4/signature/sources/') return mockResponse({});
       if (/\/api\/v4\/profile\//.test(apiPath) || /\/api\/v4\/user\//.test(apiPath)) return mockResponse({});
       if (/\/api\/v4\/submission\//.test(apiPath) && methodName === 'GET') {
