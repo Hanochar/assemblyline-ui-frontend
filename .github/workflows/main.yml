@@ -28,12 +28,12 @@ jobs:
       - name: Build Official Un-forked Production React App
         run: |
           pnpm install
-          pnpm run build  # This outputs the compiled site to the 'dist/' folder
+          pnpm run build  # This outputs the compiled site to the 'build/' folder
 
       - name: Upload Static Assets to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'dist/'
+          path: 'build/'
 
       - name: Deploy to GitHub Pages
         id: deployment
