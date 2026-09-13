@@ -237,18 +237,34 @@
 
   // 5. Intercept DOM attribute setting for asset resources (images, scripts, links)
   if (basePath) {
+    const fixUrl = function (val) {
+      if (typeof val === 'string' && val.startsWith('/') && !val.startsWith(basePath) && !val.startsWith('//')) {
+        return basePath + val;
+      }
+      return val;
+    };
+
     const origSetAttribute = Element.prototype.setAttribute;
     Element.prototype.setAttribute = function (name, value) {
-      if (
-        (name === 'src' || name === 'href') &&
-        typeof value === 'string' &&
-        value.startsWith('/') &&
-        !value.startsWith(basePath) &&
-        !value.startsWith('//')
-      ) {
-        value = basePath + value;
+      if (name === 'src' || name === 'href') {
+        value = fixUrl(value);
       }
       return origSetAttribute.call(this, name, value);
     };
+
+    // Override HTMLImageElement.prototype.src descriptor to catch direct property assignments (e.g. img.src = '/images/...')
+    const imgSrcDesc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+    if (imgSrcDesc && imgSrcDesc.set) {
+      Object.defineProperty(HTMLImageElement.prototype, 'src', {
+        get() {
+          return imgSrcDesc.get.call(this);
+        },
+        set(val) {
+          imgSrcDesc.set.call(this, fixUrl(val));
+        },
+        configurable: true,
+        enumerable: true
+      });
+    }
   }
 })();
