@@ -12,13 +12,17 @@
   // 2. Safeguard URL constructor in case relative base URL is passed (e.g. new URL('theme.json', '/'))
   const OrigURL = window.URL;
   function CustomURL(url, base) {
-    if (typeof base === 'string' && (base.startsWith('/') || (!base.includes('://') && !base.startsWith('data:')))) {
+    if (base !== undefined && typeof base === 'string' && (base.startsWith('/') || (!base.includes('://') && !base.startsWith('data:')))) {
       base = window.location.origin + (base.startsWith('/') ? base : '/' + base);
+    }
+    if (base === undefined) {
+      return new OrigURL(url);
     }
     return new OrigURL(url, base);
   }
   CustomURL.prototype = OrigURL.prototype;
   Object.setPrototypeOf(CustomURL, OrigURL);
+  Object.assign(CustomURL, OrigURL);
   window.URL = CustomURL;
 
   // 3. Intercept Location.prototype.pathname for React Router (basename="/")
@@ -57,7 +61,7 @@
     };
   }
 
-  // 3. Intercept window.fetch for API mocks and asset URL rewrites
+  // 4. Intercept window.fetch for API mocks and asset URL rewrites
   const origFetch = window.fetch;
   window.fetch = function (input, init) {
     let url = '';
@@ -102,13 +106,82 @@
             type: ['user'],
             uname: 'admin',
             username: 'admin',
-            configuration: {
-              system: { version: '4.6.0' },
-              ui: {
-                apps: [],
-                tos: false,
-                api_proxies: {}
+            c12nDef: {
+              RESTRICTED: 'TLP:AMBER',
+              UNRESTRICTED: 'TLP:CLEAR',
+              access_req_aliases: {},
+              access_req_map_lts: {},
+              access_req_map_stl: {},
+              description: { 'TLP:CLEAR': 'Clear', 'TLP:GREEN': 'Green', 'TLP:AMBER': 'Amber', 'TLP:RED': 'Red' },
+              dynamic_groups: false,
+              dynamic_groups_type: 'email',
+              enforce: false,
+              groups_aliases: {},
+              groups_auto_select: [],
+              groups_auto_select_short: [],
+              groups_map_lts: {},
+              groups_map_stl: {},
+              invalid_mode: false,
+              levels_aliases: {},
+              levels_map: { '100': 'TLP:CLEAR', '200': 'TLP:GREEN', '300': 'TLP:AMBER', '400': 'TLP:RED', 'TLP:CLEAR': '100', 'TLP:GREEN': '200', 'TLP:AMBER': '300', 'TLP:RED': '400' },
+              levels_map_lts: { 'TLP:CLEAR': 'TLP:CLEAR', 'TLP:GREEN': 'TLP:GREEN', 'TLP:AMBER': 'TLP:AMBER', 'TLP:RED': 'TLP:RED' },
+              levels_map_stl: { 'TLP:CLEAR': 'TLP:CLEAR', 'TLP:GREEN': 'TLP:GREEN', 'TLP:AMBER': 'TLP:AMBER', 'TLP:RED': 'TLP:RED' },
+              levels_styles_map: {
+                'TLP:CLEAR': { color: 'default' },
+                'TLP:GREEN': { color: 'success' },
+                'TLP:AMBER': { color: 'warning' },
+                'TLP:RED': { color: 'error' }
+              },
+              original_definition: {
+                dynamic_groups: false,
+                dynamic_groups_type: 'email',
+                enforce: false,
+                groups: [],
+                levels: [
+                  { lvl: 100, name: 'TLP:CLEAR', short_name: 'TLP:CLEAR', aliases: [], description: 'N/A', css: { color: 'default' } }
+                ],
+                required: [],
+                restricted: 'TLP:AMBER',
+                subgroups: [],
+                unrestricted: 'TLP:CLEAR'
+              },
+              params_map: { 'TLP:CLEAR': {}, 'TLP:GREEN': {}, 'TLP:AMBER': {}, 'TLP:RED': {} },
+              subgroups_aliases: {},
+              subgroups_map_lts: {},
+              subgroups_map_stl: {}
+            },
+            indexes: ['alert', 'badlist', 'file', 'heuristic', 'result', 'retrohunt', 'safelist', 'service', 'signature', 'submission', 'user', 'workflow'],
+            settings: {
+              default_external_sources: [],
+              default_zip_password: 'infected',
+              download_encoding: 'cart',
+              executive_summary: true,
+              expand_min_score: 500,
+              preferred_submission_profile: 'default',
+              service_spec: [],
+              services: { selected: ['Extract', 'YARA', 'CAPA'] },
+              submission_profiles: {
+                default: { priority: 1000, description: 'Default profile' }
               }
+            },
+            configuration: {
+              auth: { allow_2fa: true, allow_apikeys: true, allow_extended_apikeys: true, allow_security_tokens: true, apikey_max_dtl: null },
+              core: { archiver: { alternate_dtl: 0, minimum_required_services: [], use_metadata: false }, ingester: { default_max_extracted: 0, default_max_supplementary: 0 }, scaler: { service_defaults: { min_instances: 0 } } },
+              datastore: { archive: { enabled: false } },
+              retrohunt: { dtl: 30, enabled: false, max_dtl: 0 },
+              submission: {
+                dtl: 30,
+                file_sources: {
+                  md5: { auto_selected: ['Assemblyline'], pattern: '^[a-f0-9]{32}$', sources: ['Assemblyline'] },
+                  sha1: { auto_selected: [], pattern: '^[a-f0-9]{40}$', sources: ['Assemblyline'] },
+                  sha256: { auto_selected: [], pattern: '^[a-f0-9]{64}$', sources: ['Assemblyline'] }
+                },
+                max_dtl: 0,
+                max_file_size: 104857600,
+                metadata: { archive: {}, submit: {}, strict_schemes: [] }
+              },
+              system: { version: '4.6.0', name: 'Assemblyline' },
+              ui: { apps: [], tos: false, api_proxies: {}, audit: false, enforce_classification: false }
             }
           },
           api_server_version: '4.6.0',
@@ -123,12 +196,26 @@
         );
       }
 
+      if (url.includes('/help/constants/')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              api_error_message: '',
+              api_response: { max_file_size: 104857600 },
+              api_server_version: '4.6.0',
+              api_status_code: 200
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        );
+      }
+
       // Default mock API response for other API requests
       return Promise.resolve(
         new Response(
           JSON.stringify({
             api_error_message: '',
-            api_response: {},
+            api_response: { items: [], total: 0, offset: 0, rows: 25 },
             api_server_version: '4.6.0',
             api_status_code: 200
           }),
@@ -148,7 +235,7 @@
     return origFetch.call(this, input, init);
   };
 
-  // 4. Intercept DOM attribute setting for asset resources (images, scripts, links)
+  // 5. Intercept DOM attribute setting for asset resources (images, scripts, links)
   if (basePath) {
     const origSetAttribute = Element.prototype.setAttribute;
     Element.prototype.setAttribute = function (name, value) {
